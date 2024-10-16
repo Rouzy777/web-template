@@ -1,5 +1,3 @@
-import { extractYouTubeID } from './string';
-
 /**
  * By default, React DOM escapes any values embedded in JSX before rendering them,
  * but sometimes it is necessary to sanitize the user-generated content of received entities.
@@ -37,12 +35,6 @@ const sanitizeMultiEnum = (arr, options) =>
     : [];
 const sanitizeLong = lng => (lng == null || typeof lng === 'number' ? lng : null);
 const sanitizeBoolean = bool => (bool == null || typeof bool === 'boolean' ? bool : null);
-
-const sanitizeYoutubeVideoUrl = url => {
-  const sanitizedUrl = sanitizeUrl(url);
-  const videoID = extractYouTubeID(sanitizedUrl);
-  return videoID ? `https://www.youtube.com/watch?v=${videoID}` : null;
-};
 
 // URL sanitizer. This code is adapted from
 // https://github.com/braintree/sanitize-url/
@@ -153,8 +145,6 @@ const sanitizedExtendedDataFields = (value, config) => {
       ? sanitizeLong(value)
       : schemaType === 'boolean'
       ? sanitizeBoolean(value)
-      : schemaType === 'youtubeVideoUrl'
-      ? sanitizeYoutubeVideoUrl(value)
       : null;
 
   return sanitized;

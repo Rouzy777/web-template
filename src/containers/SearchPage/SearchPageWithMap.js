@@ -7,33 +7,23 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import classNames from 'classnames';
 
+import { useIntl, intlShape, FormattedMessage } from '../../util/reactIntl';
 import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 
-import { useIntl, intlShape, FormattedMessage } from '../../util/reactIntl';
+import { createResourceLocatorString, pathByRouteName } from '../../util/routes';
 import {
   isAnyFilterActive,
   isMainSearchTypeKeywords,
   isOriginInUse,
   getQueryParamNames,
 } from '../../util/search';
-import {
-  NO_ACCESS_PAGE_USER_PENDING_APPROVAL,
-  NO_ACCESS_PAGE_VIEW_LISTINGS,
-  parse,
-} from '../../util/urlHelpers';
-import { createResourceLocatorString, pathByRouteName } from '../../util/routes';
+import { parse } from '../../util/urlHelpers';
 import { propTypes } from '../../util/types';
-import {
-  isErrorNoViewingPermission,
-  isErrorUserPendingApproval,
-  isForbiddenError,
-} from '../../util/errors';
-import { hasPermissionToViewData, isUserAuthorized } from '../../util/userHelpers';
 import { getListingsById } from '../../ducks/marketplaceData.duck';
 import { manageDisableScrolling, isScrollingDisabled } from '../../ducks/ui.duck';
 
-import { H3, H5, ModalInMobile, NamedRedirect, Page } from '../../components';
+import { H3, H5, ModalInMobile, Page } from '../../components';
 import TopbarContainer from '../../containers/TopbarContainer/TopbarContainer';
 
 import { setActiveListing } from './SearchPage.duck';
@@ -638,40 +628,6 @@ const EnhancedSearchPage = props => {
   const history = useHistory();
   const location = useLocation();
 
-  const searchListingsError = props.searchListingsError;
-  if (isForbiddenError(searchListingsError)) {
-    // This can happen if private marketplace mode is active
-    return (
-      <NamedRedirect
-        name="SignupPage"
-        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
-      />
-    );
-  }
-
-  const { currentUser, ...restOfProps } = props;
-  const isPrivateMarketplace = config.accessControl.marketplace.private === true;
-  const isUnauthorizedUser = currentUser && !isUserAuthorized(currentUser);
-  const hasNoViewingRightsUser = currentUser && !hasPermissionToViewData(currentUser);
-  const hasUserPendingApprovalError = isErrorUserPendingApproval(searchListingsError);
-  const hasNoViewingRightsError = isErrorNoViewingPermission(searchListingsError);
-
-  if ((isPrivateMarketplace && isUnauthorizedUser) || hasUserPendingApprovalError) {
-    return (
-      <NamedRedirect
-        name="NoAccessPage"
-        params={{ missingAccessRight: NO_ACCESS_PAGE_USER_PENDING_APPROVAL }}
-      />
-    );
-  } else if (hasNoViewingRightsUser || hasNoViewingRightsError) {
-    return (
-      <NamedRedirect
-        name="NoAccessPage"
-        params={{ missingAccessRight: NO_ACCESS_PAGE_VIEW_LISTINGS }}
-      />
-    );
-  }
-
   return (
     <SearchPageComponent
       config={config}
@@ -679,13 +635,12 @@ const EnhancedSearchPage = props => {
       intl={intl}
       history={history}
       location={location}
-      {...restOfProps}
+      {...props}
     />
   );
 };
 
 const mapStateToProps = state => {
-  const { currentUser } = state.user;
   const {
     currentPageResultIds,
     pagination,
@@ -697,7 +652,6 @@ const mapStateToProps = state => {
   const listings = getListingsById(state, currentPageResultIds);
 
   return {
-    currentUser,
     listings,
     pagination,
     scrollingDisabled: isScrollingDisabled(state),

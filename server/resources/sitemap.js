@@ -5,7 +5,6 @@ const { getRootURL } = require('../api-util/rootURL.js');
 const sdkUtils = require('../api-util/sdk.js');
 
 const isSitemapDisabled = process.env.SITEMAP_DISABLED === 'true';
-const dev = process.env.REACT_APP_ENV === 'development';
 
 ///////////////////////////////////////////////////////////////////////////////
 // This file generates sitemaps.                                             //
@@ -92,9 +91,8 @@ const cache = createCacheProxy(ttl);
  * @param {Object} req request
  * @param {Object} res response
  * @param {String} rootUrl location from where these sitemap paths can be found
- * @param {Boolean} isPrivateMarketplace is private marketplace mode set
  */
-const sitemapIndex = (req, res, rootUrl, isPrivateMarketplace) => {
+const sitemapIndex = (req, res, rootUrl) => {
   res.set({
     'Content-Type': 'application/xml',
     'Cache-Control': `public, max-age=${ttl}`,
@@ -113,9 +111,11 @@ const sitemapIndex = (req, res, rootUrl, isPrivateMarketplace) => {
     const smiStream = new SitemapIndexStream({ level: 'warn' });
 
     // Sitemap-index will contain the following sitemaps:
-    const sitemaps = isPrivateMarketplace
-      ? ['/sitemap-default.xml', '/sitemap-recent-pages.xml']
-      : ['/sitemap-default.xml', '/sitemap-recent-listings.xml', '/sitemap-recent-pages.xml'];
+    const sitemaps = [
+      '/sitemap-default.xml',
+      '/sitemap-recent-listings.xml',
+      '/sitemap-recent-pages.xml',
+    ];
 
     // Add sitemaps to the index
     sitemaps.forEach(sitemapPath => {
@@ -144,9 +144,8 @@ const sitemapIndex = (req, res, rootUrl, isPrivateMarketplace) => {
  * @param {Object} req request
  * @param {Object} res response
  * @param {String} rootUrl location from where these sitemap paths can be found
- * @param {Boolean} isPrivateMarketplace is private marketplace mode set
  */
-const sitemapDefault = (req, res, rootUrl, isPrivateMarketplace) => {
+const sitemapDefault = (req, res, rootUrl) => {
   res.set({
     'Content-Type': 'application/xml',
     'Cache-Control': `public, max-age=${ttl}`,
@@ -166,10 +165,7 @@ const sitemapDefault = (req, res, rootUrl, isPrivateMarketplace) => {
 
     // Pass default public paths to SitemapStream.
     // These are defined in the beginning of the page
-    const { search, ...restOfPaths } = defaultPublicPaths;
-    const publicPaths = isPrivateMarketplace ? restOfPaths : defaultPublicPaths;
-
-    const paths = Object.values(publicPaths);
+    const paths = Object.values(defaultPublicPaths);
     Readable.from(paths).pipe(smStream);
 
     // Save to in-memory cache
@@ -191,9 +187,8 @@ const sitemapDefault = (req, res, rootUrl, isPrivateMarketplace) => {
  * @param {Object} req request
  * @param {Object} res response
  * @param {String} rootUrl location from where these sitemap paths can be found
- * @param {Object} sdk
  */
-const sitemapListings = (req, res, rootUrl, sdk) => {
+const sitemapListings = (req, res, rootUrl) => {
   res.set({
     'Content-Type': 'application/xml',
     'Cache-Control': `public, max-age=${ttl}`,
@@ -208,6 +203,7 @@ const sitemapListings = (req, res, rootUrl, sdk) => {
     return;
   }
 
+  const sdk = sdkUtils.getSdk(req, res);
   sdk.sitemapData
     .queryListings()
     .then(response => {
@@ -236,12 +232,6 @@ const sitemapListings = (req, res, rootUrl, sdk) => {
       });
     })
     .catch(e => {
-      // Private marketplace mode might throw
-      if (e.status === 403) {
-        res.send(
-          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"></urlset>`
-        );
-      }
       log.error(e, 'sitemap-recent-listings-render-failed');
       res.status(500).end();
     });
@@ -255,9 +245,8 @@ const sitemapListings = (req, res, rootUrl, sdk) => {
  * @param {Object} req request
  * @param {Object} res response
  * @param {String} rootUrl location from where these sitemap paths can be found
- * @param {Object} sdk
  */
-const sitemapPages = (req, res, rootUrl, sdk) => {
+const sitemapPages = (req, res, rootUrl) => {
   res.set({
     'Content-Type': 'application/xml',
     'Cache-Control': `public, max-age=${ttl}`,
@@ -273,6 +262,7 @@ const sitemapPages = (req, res, rootUrl, sdk) => {
   }
 
   const pathPrefix = '/content/pages/';
+  const sdk = sdkUtils.getSdk(req, res);
   sdk.sitemapData
     .queryAssets({ pathPrefix })
     .then(response => {
@@ -313,35 +303,6 @@ const sitemapPages = (req, res, rootUrl, sdk) => {
 };
 
 /**
- * Render different sitemap resources.
- *
- * @param {Object} req request
- * @param {Object} res response
- * @param {function} next
- * @param {Object} sdk
- * @param {Boolean} isPrivateMarketplace
- */
-const handleSitemaps = (req, res, next, sdk, isPrivateMarketplace) => {
-  const resource = req.params.resource;
-  const parts = resource.split('.');
-  const sitemapResource = parts[0];
-  // Resolve hostname inside the request
-  const rootUrl = getRootURL();
-
-  if (sitemapResource === 'index') {
-    sitemapIndex(req, res, getRootURL({ useDevApiServerPort: true }), isPrivateMarketplace);
-  } else if (sitemapResource === 'default') {
-    sitemapDefault(req, res, rootUrl, isPrivateMarketplace);
-  } else if (sitemapResource === 'recent-listings' && !isPrivateMarketplace) {
-    sitemapListings(req, res, rootUrl, sdk);
-  } else if (sitemapResource === 'recent-pages') {
-    sitemapPages(req, res, rootUrl, sdk);
-  } else {
-    // If none of the resource-routes mapped, we pass this forward.
-    next();
-  }
-};
-/**
  * Route: "sitemap-:resource". resouce can point to index, default, recent-listings, or recent-pages.
  *
  * @param {Object} req request
@@ -357,29 +318,22 @@ module.exports = (req, res, next) => {
     return;
   }
 
-  const sdk = sdkUtils.getSdk(req, res);
-  sdkUtils
-    .fetchAccessControlAsset(sdk)
-    .then(response => {
-      const accessControlAsset = response.data.data[0];
+  const resource = req.params.resource;
+  const parts = resource.split('.');
+  const sitemapResource = parts[0];
+  // Resolve hostname inside the request
+  const rootUrl = getRootURL();
 
-      const { marketplace } =
-        accessControlAsset?.type === 'jsonAsset' ? accessControlAsset.attributes.data : {};
-      const isPrivateMarketplace = marketplace?.private === true;
-      handleSitemaps(req, res, next, sdk, isPrivateMarketplace);
-    })
-    .catch(e => {
-      const is404 = e.status === 404;
-      if (is404) {
-        // If access-control.json asset is not found, we default to "public" marketplace.
-        handleSitemaps(req, res, next, sdk, false);
-
-        if (dev) {
-          // Log error
-          console.log('sitemap-render-failed-no-asset-found');
-        }
-      } else {
-        next();
-      }
-    });
+  if (sitemapResource === 'index') {
+    sitemapIndex(req, res, getRootURL({ useDevApiServerPort: true }));
+  } else if (sitemapResource === 'default') {
+    sitemapDefault(req, res, rootUrl);
+  } else if (sitemapResource === 'recent-listings') {
+    sitemapListings(req, res, rootUrl);
+  } else if (sitemapResource === 'recent-pages') {
+    sitemapPages(req, res, rootUrl);
+  } else {
+    // If none of the resource-routes mapped, we pass this forward.
+    next();
+  }
 };

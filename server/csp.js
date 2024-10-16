@@ -34,11 +34,10 @@ const defaultDirectives = {
     // Google Analytics
     // TODO: Signals support needs more work
     // https://developers.google.com/tag-platform/security/guides/csp
+    'www.googletagmanager.com',
     '*.google-analytics.com',
     '*.analytics.google.com',
-    '*.googletagmanager.com',
-    '*.g.doubleclick.net',
-    '*.google.com',
+    'stats.g.doubleclick.net',
 
     // Plausible analytics
     'plausible.io',
@@ -52,13 +51,7 @@ const defaultDirectives = {
   ],
   fontSrc: [self, data, 'assets-sharetribecom.sharetribe.com', 'fonts.gstatic.com'],
   formAction: [self],
-  frameSrc: [
-    self,
-    '*.stripe.com',
-    '*.youtube-nocookie.com',
-    'https://bid.g.doubleclick.net',
-    'https://td.doubleclick.net',
-  ],
+  frameSrc: [self, '*.stripe.com', '*.youtube-nocookie.com'],
   imgSrc: [
     self,
     data,
@@ -81,12 +74,10 @@ const defaultDirectives = {
     '*.giphy.com',
 
     // Google Analytics
-    '*.google-analytics.com',
-    '*.analytics.google.com',
-    '*.googletagmanager.com',
-    '*.g.doubleclick.net',
-    '*.google.com',
-    'google.com',
+    'www.googletagmanager.com',
+    'www.google.com',
+    'www.google-analytics.com',
+    'stats.g.doubleclick.net',
 
     // Youtube (static image)
     '*.ytimg.com',
@@ -101,10 +92,8 @@ const defaultDirectives = {
     data,
     'maps.googleapis.com',
     'api.mapbox.com',
-    '*.googletagmanager.com',
+    'www.googletagmanager.com',
     '*.google-analytics.com',
-    'www.googleadservices.com',
-    '*.g.doubleclick.net',
     'js.stripe.com',
     // Plausible analytics
     'plausible.io',

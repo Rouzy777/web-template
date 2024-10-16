@@ -8,12 +8,6 @@ import { useIntl } from 'react-intl';
 import { useConfiguration } from '../../context/configurationContext';
 import { useRouteConfiguration } from '../../context/routeConfigurationContext';
 import { userDisplayNameAsString } from '../../util/data';
-import {
-  NO_ACCESS_PAGE_INITIATE_TRANSACTIONS,
-  NO_ACCESS_PAGE_USER_PENDING_APPROVAL,
-} from '../../util/urlHelpers';
-import { hasPermissionToInitiateTransactions, isUserAuthorized } from '../../util/userHelpers';
-import { isErrorNoPermissionForInitiateTransactions } from '../../util/errors';
 import { INQUIRY_PROCESS_NAME, resolveLatestProcessName } from '../../transactions/transaction';
 
 // Import global thunk functions
@@ -70,7 +64,6 @@ const EnhancedCheckoutPage = props => {
 
   useEffect(() => {
     const {
-      currentUser,
       orderData,
       listing,
       transaction,
@@ -82,18 +75,15 @@ const EnhancedCheckoutPage = props => {
     setPageData(data || {});
     setIsDataLoaded(true);
 
-    // Do not fetch extra data if user is not active (E.g. they are in pending-approval state.)
-    if (isUserAuthorized(currentUser)) {
-      // This is for processes using payments with Stripe integration
-      if (getProcessName(data) !== INQUIRY_PROCESS_NAME) {
-        // Fetch StripeCustomer and speculateTransition for transactions that include Stripe payments
-        loadInitialDataForStripePayments({
-          pageData: data || {},
-          fetchSpeculatedTransaction,
-          fetchStripeCustomer,
-          config,
-        });
-      }
+    // This is for processes using payments with Stripe integration
+    if (getProcessName(data) !== INQUIRY_PROCESS_NAME) {
+      // Fetch StripeCustomer and speculateTransition for transactions that include Stripe payments
+      loadInitialDataForStripePayments({
+        pageData: data || {},
+        fetchSpeculatedTransaction,
+        fetchStripeCustomer,
+        config,
+      });
     }
   }, []);
 
@@ -103,7 +93,6 @@ const EnhancedCheckoutPage = props => {
     scrollingDisabled,
     speculateTransactionInProgress,
     onInquiryWithoutPayment,
-    initiateOrderError,
   } = props;
   const processName = getProcessName(pageData);
   const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
@@ -113,15 +102,6 @@ const EnhancedCheckoutPage = props => {
   const isOwnListing = currentUser?.id && listing?.author?.id?.uuid === currentUser?.id?.uuid;
   const hasRequiredData = !!(listing?.id && listing?.author?.id && processName);
   const shouldRedirect = isDataLoaded && !(hasRequiredData && !isOwnListing);
-  const shouldRedirectUnathorizedUser = isDataLoaded && !isUserAuthorized(currentUser);
-  // Redirect if the user has no transaction rights
-  const shouldRedirectNoTransactionRightsUser =
-    isDataLoaded &&
-    // - either when they first arrive on the checkout page
-    (!hasPermissionToInitiateTransactions(currentUser) ||
-      // - or when they are sending the order (if the operator removed transaction rights
-      // when they were already on the checkout page and the user has not refreshed the page)
-      isErrorNoPermissionForInitiateTransactions(initiateOrderError));
 
   // Redirect back to ListingPage if data is missing.
   // Redirection must happen before any data format error is thrown (e.g. wrong currency)
@@ -131,21 +111,6 @@ const EnhancedCheckoutPage = props => {
       listing,
     });
     return <NamedRedirect name="ListingPage" params={params} />;
-    // Redirect to NoAccessPage if access rights are missing
-  } else if (shouldRedirectUnathorizedUser) {
-    return (
-      <NamedRedirect
-        name="NoAccessPage"
-        params={{ missingAccessRight: NO_ACCESS_PAGE_USER_PENDING_APPROVAL }}
-      />
-    );
-  } else if (shouldRedirectNoTransactionRightsUser) {
-    return (
-      <NamedRedirect
-        name="NoAccessPage"
-        params={{ missingAccessRight: NO_ACCESS_PAGE_INITIATE_TRANSACTIONS }}
-      />
-    );
   }
 
   const listingTitle = listing?.attributes?.title;

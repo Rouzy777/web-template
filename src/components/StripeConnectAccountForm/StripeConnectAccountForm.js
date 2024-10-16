@@ -86,11 +86,10 @@ const CreateStripeAccountFields = props => {
         createResourceLocatorString('ProfilePage', routeConfiguration, { id: uuid }, {});
       const hasMarketplaceRootURL = !!marketplaceRootURL;
       const rootUrl = hasMarketplaceRootURL ? marketplaceRootURL.replace(/\/$/, '') : null;
-      const profilePageURL =
+      const defaultBusinessURL =
         hasMarketplaceRootURL && !rootUrl.includes('localhost')
           ? `${rootUrl}${pathToProfilePage(currentUserId.uuid)}`
           : `https://test-marketplace.com${pathToProfilePage(currentUserId.uuid)}`;
-      const defaultBusinessURL = `${profilePageURL}?mode=storefront`;
       form.change('businessProfileURL', defaultBusinessURL);
     }
 

@@ -20,8 +20,8 @@ import {
   ensureSeparator,
   truncateToSubUnitPrecision,
 } from '../../util/currency';
-import * as log from '../../util/log';
 import { propTypes } from '../../util/types';
+import * as log from '../../util/log';
 
 import { ValidationError } from '../../components';
 

@@ -345,6 +345,7 @@ export const InboxPageComponent = props => {
 
 InboxPageComponent.defaultProps = {
   currentUser: null,
+  currentUserHasOrders: null,
   fetchOrdersOrSalesError: null,
   pagination: null,
   providerNotificationCount: 0,

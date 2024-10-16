@@ -35,7 +35,6 @@ const SearchPageWithGrid = loadable(() => import(/* webpackChunkName: "SearchPag
 const StripePayoutPage = loadable(() => import(/* webpackChunkName: "StripePayoutPage" */ '../containers/StripePayoutPage/StripePayoutPage'));
 const TermsOfServicePage = loadable(() => import(/* webpackChunkName: "TermsOfServicePage" */ '../containers/TermsOfServicePage/TermsOfServicePage'));
 const TransactionPage = loadable(() => import(/* webpackChunkName: "TransactionPage" */ '../containers/TransactionPage/TransactionPage'));
-const NoAccessPage = loadable(() => import(/* webpackChunkName: "NoAccessPage" */ '../containers/NoAccessPage/NoAccessPage'));
 
 // Styleguide helps you to review current components and develop new ones
 const StyleguidePage = loadable(() => import(/* webpackChunkName: "StyleguidePage" */ '../containers/StyleguidePage/StyleguidePage'));
@@ -61,16 +60,13 @@ const RedirectToLandingPage = () => <NamedRedirect name="LandingPage" />;
 
 // Our routes are exact by default.
 // See behaviour from Routes.js where Route is created.
-const routeConfiguration = (layoutConfig, accessControlConfig) => {
+const routeConfiguration = (layoutConfig) => {
   const SearchPage = layoutConfig.searchPage?.variantType === 'map' 
     ? SearchPageWithMap 
     : SearchPageWithGrid;
   const ListingPage = layoutConfig.listingPage?.variantType === 'carousel' 
     ? ListingPageCarousel 
     : ListingPageCoverPhoto;
-
-  const isPrivateMarketplace = accessControlConfig?.marketplace?.private === true;
-  const authForPrivateMarketplace = isPrivateMarketplace ? { auth: true } : {};
   
   return [
     {
@@ -88,7 +84,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/s',
       name: 'SearchPage',
-      ...authForPrivateMarketplace,
       component: SearchPage,
       loadData: pageDataLoadingAPI.SearchPage.loadData,
     },
@@ -100,7 +95,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/l/:slug/:id',
       name: 'ListingPage',
-      ...authForPrivateMarketplace,
       component: ListingPage,
       loadData: pageDataLoadingAPI.ListingPage.loadData,
     },
@@ -150,7 +144,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/l/:id',
       name: 'ListingPageCanonical',
-      ...authForPrivateMarketplace,
       component: ListingPage,
       loadData: pageDataLoadingAPI.ListingPage.loadData,
     },
@@ -162,14 +155,6 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/u/:id',
       name: 'ProfilePage',
-      ...authForPrivateMarketplace,
-      component: ProfilePage,
-      loadData: pageDataLoadingAPI.ProfilePage.loadData,
-    },
-    {
-      path: '/u/:id/:variant',
-      name: 'ProfilePageVariant',
-      auth: true,
       component: ProfilePage,
       loadData: pageDataLoadingAPI.ProfilePage.loadData,
     },
@@ -334,38 +319,28 @@ const routeConfiguration = (layoutConfig, accessControlConfig) => {
     {
       path: '/styleguide',
       name: 'Styleguide',
-      ...authForPrivateMarketplace,
       component: StyleguidePage,
     },
     {
       path: '/styleguide/g/:group',
       name: 'StyleguideGroup',
-      ...authForPrivateMarketplace,
       component: StyleguidePage,
     },
     {
       path: '/styleguide/c/:component',
       name: 'StyleguideComponent',
-      ...authForPrivateMarketplace,
       component: StyleguidePage,
     },
     {
       path: '/styleguide/c/:component/:example',
       name: 'StyleguideComponentExample',
-      ...authForPrivateMarketplace,
       component: StyleguidePage,
     },
     {
       path: '/styleguide/c/:component/:example/raw',
       name: 'StyleguideComponentExampleRaw',
-      ...authForPrivateMarketplace,
       component: StyleguidePage,
       extraProps: { raw: true },
-    },
-    {
-      path: '/no-:missingAccessRight',
-      name: 'NoAccessPage',
-      component: NoAccessPage,
     },
     {
       path: '/notfound',

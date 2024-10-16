@@ -2,14 +2,9 @@ import React from 'react';
 import { FormattedMessage } from '../../util/reactIntl';
 import { types as sdkTypes } from '../../util/sdkLoader';
 import { createResourceLocatorString, findRouteByRouteName } from '../../util/routes';
-import { convertMoneyToNumber, formatMoney } from '../../util/currency';
+import { formatMoney } from '../../util/currency';
 import { timestampToDate } from '../../util/dates';
-import { hasPermissionToInitiateTransactions, isUserAuthorized } from '../../util/userHelpers';
-import {
-  NO_ACCESS_PAGE_INITIATE_TRANSACTIONS,
-  NO_ACCESS_PAGE_USER_PENDING_APPROVAL,
-  createSlug,
-} from '../../util/urlHelpers';
+import { createSlug } from '../../util/urlHelpers';
 
 import { Page, LayoutSingleColumn } from '../../components';
 import FooterContainer from '../../containers/FooterContainer/FooterContainer';
@@ -40,29 +35,6 @@ export const priceData = (price, marketplaceCurrency, intl) => {
     };
   }
   return {};
-};
-
-/**
- * Converts Money object to number, which is needed for the search schema (for Google etc.)
- *
- * @param {Money} price
- * @returns {Money|null}
- */
-export const priceForSchemaMaybe = (price, intl) => {
-  try {
-    const schemaPrice = convertMoneyToNumber(price);
-    return schemaPrice
-      ? {
-          price: intl.formatNumber(schemaPrice, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }),
-          priceCurrency: price.currency,
-        }
-      : {};
-  } catch (e) {
-    return {};
-  }
 };
 
 /**
@@ -126,14 +98,6 @@ export const handleContactUser = parameters => () => {
 
     // signup and return back to listingPage.
     history.push(createResourceLocatorString('SignupPage', routes, {}, {}), state);
-  } else if (!isUserAuthorized(currentUser)) {
-    // A user in pending-approval state can't contact the author (the same applies for a banned user)
-    const pathParams = { missingAccessRight: NO_ACCESS_PAGE_USER_PENDING_APPROVAL };
-    history.push(createResourceLocatorString('NoAccessPage', routes, pathParams, {}));
-  } else if (!hasPermissionToInitiateTransactions(currentUser)) {
-    // A user in pending-approval state can't contact the author (the same applies for a banned user)
-    const pathParams = { missingAccessRight: NO_ACCESS_PAGE_INITIATE_TRANSACTIONS };
-    history.push(createResourceLocatorString('NoAccessPage', routes, pathParams, {}));
   } else {
     setInquiryModalOpen(true);
   }
@@ -147,7 +111,6 @@ export const handleContactUser = parameters => () => {
  */
 export const handleSubmitInquiry = parameters => values => {
   const { history, params, getListing, onSendInquiry, routes, setInquiryModalOpen } = parameters;
-
   const listingId = new UUID(params.id);
   const listing = getListing(listingId);
   const { message } = values;

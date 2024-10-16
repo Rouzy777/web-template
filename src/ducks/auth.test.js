@@ -1,16 +1,7 @@
-import * as log from '../util/log';
 import { storableError } from '../util/errors';
-import { createCurrentUser } from '../util/testData';
-import {
-  clearCurrentUser,
-  currentUserShowRequest,
-  currentUserShowSuccess,
-  fetchCurrentUserNotificationsRequest,
-  fetchCurrentUserNotificationsSuccess,
-} from './user.duck';
+import { clearCurrentUser, currentUserShowRequest, currentUserShowSuccess } from './user.duck';
 import reducer, {
   authenticationInProgress,
-  authInfoRequest,
   authInfoSuccess,
   login,
   loginRequest,
@@ -26,6 +17,7 @@ import reducer, {
   signupError,
   userLogout,
 } from './auth.duck';
+import * as log from '../util/log';
 
 // Create a dispatch function that correctly calls the thunk functions
 // with itself
@@ -196,15 +188,7 @@ describe('auth duck', () => {
     it('should dispatch success and fetch current user', () => {
       const initialState = reducer();
       const getState = () => ({ auth: initialState });
-      const fakeCurrentUser = createCurrentUser({ id: 'test-user' });
-      const fakeCurrentUserResponse = { data: { data: fakeCurrentUser, include: [] } };
-      const fakeTransactionsResponse = { data: { data: [], include: [] } };
-      const sdk = {
-        login: jest.fn(() => Promise.resolve({})),
-        authInfo: jest.fn(() => Promise.resolve({})),
-        currentUser: { show: jest.fn(() => Promise.resolve(fakeCurrentUserResponse)) },
-        transactions: { query: jest.fn(() => Promise.resolve(fakeTransactionsResponse)) },
-      };
+      const sdk = { login: jest.fn(() => Promise.resolve({})) };
       const dispatch = createFakeDispatch(getState, sdk);
       const username = 'x.x@example.com';
       const password = 'pass';
@@ -213,13 +197,13 @@ describe('auth duck', () => {
         expect(sdk.login.mock.calls).toEqual([[{ username, password }]]);
         expect(dispatchedActions(dispatch)).toEqual([
           loginRequest(),
-          currentUserShowRequest(),
-          currentUserShowSuccess(fakeCurrentUser),
-          fetchCurrentUserNotificationsRequest(),
-          authInfoRequest(),
-          fetchCurrentUserNotificationsSuccess([]),
-          authInfoSuccess({}),
           loginSuccess(),
+          currentUserShowRequest(),
+
+          // Test restriction: Since the getState mock always returns
+          // the initial state, user isn't marked as logged in and
+          // current user is still null.
+          currentUserShowSuccess(null),
         ]);
       });
     });
@@ -351,17 +335,11 @@ describe('auth duck', () => {
 
   describe('signup thunk', () => {
     it('should dispatch success and login', () => {
-      const fakeCurrentUser = createCurrentUser({ id: 'test-user' });
-      const fakeCurrentUserResponse = { data: { data: fakeCurrentUser, include: [] } };
-      const fakeTransactionsResponse = { data: { data: [], include: [] } };
       const sdk = {
         currentUser: {
           create: jest.fn(() => Promise.resolve({})),
-          show: jest.fn(() => Promise.resolve(fakeCurrentUserResponse)),
         },
         login: jest.fn(() => Promise.resolve({})),
-        authInfo: jest.fn(() => Promise.resolve({})),
-        transactions: { query: jest.fn(() => Promise.resolve(fakeTransactionsResponse)) },
       };
       const getState = () => ({ auth: state });
       const dispatch = createFakeDispatch(getState, sdk);
@@ -385,13 +363,13 @@ describe('auth duck', () => {
           signupRequest(),
           signupSuccess(),
           loginRequest(),
-          currentUserShowRequest(),
-          currentUserShowSuccess(fakeCurrentUser),
-          fetchCurrentUserNotificationsRequest(),
-          authInfoRequest(),
-          fetchCurrentUserNotificationsSuccess([]),
-          authInfoSuccess({}),
           loginSuccess(),
+          currentUserShowRequest(),
+
+          // Test restriction: Since the getState mock always returns
+          // the initial state, user isn't marked as logged in and
+          // current user is still null.
+          currentUserShowSuccess(null),
         ]);
       });
     });
